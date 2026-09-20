@@ -223,14 +223,43 @@ section { padding: clamp(80px, 11vw, 150px) 0; }
 .montaje__texto h2 { font-size: clamp(1.4rem, 3vw, 2.1rem); }
 .montaje__texto p { margin: 12px 0 0; color: var(--text-secondary); font-size: 16px; }
 
+/* MOVIL. La primera version apagaba aqui el 3D entero "por prudencia" y la
+   pagina quedaba plana: Fer lo vio al momento. Ahora el montaje se mantiene,
+   adaptado: la escena se estrecha y se alarga (16/11 en vez de 16/10), las
+   piezas viajan menos para no salirse de una pantalla estrecha, y el paralaje
+   sale del GIROSCOPIO en vez del raton (ver el script). Lo unico que se quita
+   es la pieza de Git, que a ese tamaño tapaba el lateral. */
 @media (max-width: 860px) {
-  .montaje { height: auto; }
-  .montaje__pegado { position: static; height: auto; padding: 36px 0; overflow: visible; }
-  .escena { aspect-ratio: 16 / 11; }
-  .escena__mundo { transform: none; }
-  .pieza--editor, .pieza--git, .etiqueta { display: none; }
-  .pieza--lateral, .pieza--chat { transform: none; }
-  .montaje__texto { position: static; transform: none; opacity: 1; width: auto; margin-top: 26px; }
+  .montaje { height: 210vh; }
+  .escena { width: 94vw; aspect-ratio: 16 / 11; margin-bottom: clamp(60px, 14vh, 110px); perspective: 1100px; }
+  .escena__mundo {
+    transform:
+      rotateX(calc((7deg - var(--p) * 7deg) + var(--my) * -4deg))
+      rotateY(calc(var(--mx) * 6deg))
+      scale(calc(0.92 + var(--p) * 0.08));
+  }
+  .pieza--git { display: none; }
+  .pieza--lateral {
+    transform:
+      translate3d(calc(0% - (1 - var(--p)) * 22%), calc((1 - var(--p)) * -4%), calc(70px - var(--p) * 70px))
+      rotateY(calc((1 - var(--p)) * 12deg));
+  }
+  .pieza--chat {
+    transform:
+      translate3d(calc((1 - var(--p)) * 7%), calc((1 - var(--p)) * 5%), calc(-30px + var(--p) * 30px))
+      rotateY(calc((1 - var(--p)) * -5deg));
+  }
+  .pieza--editor {
+    left: 30%; top: 8%; width: 60%; height: 58%;
+    transform:
+      translate3d(calc((1 - var(--p)) * 14%), calc((1 - var(--p)) * -16%), calc(150px - var(--p) * 150px))
+      rotateY(calc((1 - var(--p)) * -12deg));
+  }
+  .etiqueta { font-size: 10px; padding: 6px 8px; }
+  .etiqueta--git { display: none; }
+  .montaje__texto { bottom: 8px; width: 92vw; }
+  .montaje__texto h2 { font-size: 1.35rem; }
+  .montaje__texto p { font-size: 14.5px; }
 }
 
 /* ═══ RECORRIDO PEGAJOSO ═══════════════════════════════════════════════════
@@ -250,6 +279,18 @@ section { padding: clamp(80px, 11vw, 150px) 0; }
 .paso h3 { font-size: 1.12rem; }
 .paso p { margin: 8px 0 0; color: var(--text-secondary); font-size: 15px; }
 .recorrido__visor { position: sticky; top: 108px; }
+/* En una sola columna el visor iba DEBAJO de los pasos, asi que el cambio de
+   captura al leer no se veia nunca. Ahora va primero y se queda pegado bajo la
+   barra mientras los pasos pasan por debajo: el mismo efecto que en escritorio,
+   en vertical. */
+@media (max-width: 979px) {
+  /* Fondo solido y sin el pie: al ir pegado, los pasos pasan POR DEBAJO y sin
+     fondo se veia el texto a traves, y el pie se montaba sobre el primer paso. */
+  .recorrido__visor { order: -1; top: 64px; z-index: 5; background: var(--void); padding: 8px 0 12px; }
+  .recorrido__visor .nota-pie { display: none; }
+  .visor { aspect-ratio: 16 / 10; }
+  .recorrido__pasos { padding-top: 6px; }
+}
 .visor {
   position: relative; border-radius: 14px; overflow: hidden;
   border: 1px solid var(--border-subtle); background: var(--surface);
@@ -670,6 +711,33 @@ footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(
     myObj = (e.clientY / window.innerHeight) * 2 - 1;
   }, { passive: true });
 
+  /* En el movil no hay raton: el paralaje lo lleva el GIROSCOPIO. Inclinar el
+     telefono mueve la escena igual que mover el raton en escritorio.
+     gamma = inclinacion izquierda/derecha, beta = adelante/atras. Se resta la
+     postura de reposo (nadie sostiene el movil plano) y se recorta a ±1. */
+  var giroBase = null;
+  function orientar(e) {
+    if (e.gamma === null || e.beta === null) return;
+    if (giroBase === null) giroBase = { g: e.gamma, b: e.beta };
+    mxObj = Math.max(-1, Math.min(1, (e.gamma - giroBase.g) / 22));
+    myObj = Math.max(-1, Math.min(1, (e.beta - giroBase.b) / 22));
+  }
+  if ('DeviceOrientationEvent' in window) {
+    var DOE = window.DeviceOrientationEvent;
+    if (typeof DOE.requestPermission === 'function') {
+      // iOS pide permiso, y solo lo concede dentro de un gesto del usuario.
+      var pedir = function () {
+        DOE.requestPermission().then(function (r) {
+          if (r === 'granted') window.addEventListener('deviceorientation', orientar, { passive: true });
+        }).catch(function () { /* sin giroscopio: se queda quieto, y ya */ });
+        window.removeEventListener('touchend', pedir);
+      };
+      window.addEventListener('touchend', pedir, { passive: true });
+    } else {
+      window.addEventListener('deviceorientation', orientar, { passive: true });
+    }
+  }
+
   function fotograma() {
     // Progreso del montaje: 0 al entrar la escena, 1 cuando lleva recorrido el
     // 62 % de su zona pegajosa. Se corta ahí para que el escritorio quede
@@ -719,6 +787,12 @@ footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(
   if (reduce || !('IntersectionObserver' in window)) return;
   var piezas = [].slice.call(document.querySelectorAll('.aparece'))
     .filter(function (p) { return p.getBoundingClientRect().top > window.innerHeight * 0.92; });
+  // En movil las pantallas son cortas y el usuario baja rapido: si se arma todo
+  // lo que queda por debajo, va viendo bloques aparecer con retraso. Se deja
+  // sin armar lo que esta a menos de pantalla y media.
+  if (window.innerWidth < 860) {
+    piezas = piezas.filter(function (p) { return p.getBoundingClientRect().top > window.innerHeight * 1.5; });
+  }
   piezas.forEach(function (p) { p.classList.add('armado'); });
   var obs = new IntersectionObserver(function (entradas) {
     entradas.forEach(function (e, i) {
