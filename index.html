@@ -16,6 +16,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 :root {
   --void: #181818;  --surface: #212121;  --elevated: #2b2b2b;  --raised: #323232;
+  --surface-photo: #101010;  /* franja más oscura detrás de las fotos, para que destaquen */
   --accent: #80CBC4;  --accent-bright: #A5D6D3;  --accent-dim: #1a3836;
   --accent-muted: rgba(128,203,196,0.12);
   --thinking: #C792EA;  --success: #C3E88D;  --warning: #FFCB6B;  --info: #82AAFF;
@@ -132,6 +133,7 @@ h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); line-height: 1.08; font-weight: 600;
 h3 { font-size: 1.28rem; line-height: 1.25; font-weight: 600; }
 .entradilla { font-size: clamp(1.04rem, 1.6vw, 1.2rem); color: var(--text-secondary); max-width: 60ch; margin: 24px 0 0; }
 section { padding: clamp(80px, 11vw, 150px) 0; }
+#escritorio, #diza { background: var(--surface-photo); border-top: 1px solid var(--border-faint); border-bottom: 1px solid var(--border-faint); }
 
 /* ═══ EL ESCRITORIO QUE SE MONTA ═══════════════════════════════════════════
    Cuatro piezas REALES de la aplicación (lateral, chat, editor, Git) flotando
@@ -326,7 +328,7 @@ section { padding: clamp(80px, 11vw, 150px) 0; }
 }
 .marco {
   border-radius: 13px; overflow: hidden; border: 1px solid var(--border-subtle);
-  box-shadow: 0 26px 70px -30px rgba(0,0,0,.92);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.75), 0 0 0 1px var(--border-subtle), 0 0 120px -30px var(--accent-muted);
   transform: perspective(1200px) rotateY(calc(var(--mx) * 1.6deg)) rotateX(calc(var(--my) * -1.1deg));
 }
 .nota-pie { margin: 14px 0 0; font: 500 12.5px/1.5 var(--fuente-mono); color: var(--text-tertiary); }
