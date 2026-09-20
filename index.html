@@ -179,6 +179,8 @@ section { padding: clamp(80px, 11vw, 150px) 0; }
 }
 .pieza--chat {
   left: 23%; top: 0; width: 77%; height: 100%;
+  background: #14161b;
+  img { object-fit: cover; object-position: bottom center; }
   transform:
     translate3d(calc((1 - var(--p)) * 9%), calc((1 - var(--p)) * 4%), calc(-40px + var(--p) * 40px))
     rotateY(calc((1 - var(--p)) * -6deg));
