@@ -89,9 +89,9 @@ body::before {
   .marca:hover .guino__ojo { animation: none; }
 }
 .marca span { font-family: var(--fuente-titulo); font-weight: 600; font-size: 18px; letter-spacing: -0.01em; white-space: nowrap; }
-/* "IaDiza Desktop" es largo: en pantallas estrechas se queda solo el logo, que
-   es lo que la identifica de verdad. */
-@media (max-width: 520px) { .marca span { display: none; } }
+/* En móvil el nombre se muestra en 14px: el nombre importa (petición de
+   Fer, 20-09-2026). El logo no se toca. */
+@media (max-width: 520px) { .marca span { font-size: 14px; } }
 .nav__enlaces { display: flex; gap: 3px; }
 .nav__enlaces a {
   padding: 8px 13px; border-radius: 9px; color: var(--text-secondary);
@@ -619,8 +619,7 @@ footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(
       </div>
 
       <figure class="marco aparece" style="margin:0">
-        <img src="img/10-respuesta.webp" srcset="img/10-respuesta.webp 1504w"
-             loading="lazy" alt="Respuesta de Diza: razonamiento plegado, la contestación, y debajo el bloque «Lo que he hecho».">
+        <img src="img/diza-trabajando.webp" width="900" height="506" loading="lazy" decoding="async" alt="Diza contestando una pregunta sobre el c&oacute;digo: grabaci&oacute;n real, sin cortes.">
         <figcaption style="padding:14px 18px;border-top:1px solid var(--border-faint);color:var(--text-secondary);font-size:14px" data-t="figR">
           Una respuesta real: el razonamiento plegado arriba, la contestación, y debajo el registro de lo que hizo.
         </figcaption>
