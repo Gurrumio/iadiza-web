@@ -751,6 +751,23 @@ footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(
      telefono mueve la escena igual que mover el raton en escritorio.
      gamma = inclinacion izquierda/derecha, beta = adelante/atras. Se resta la
      postura de reposo (nadie sostiene el movil plano) y se recorta a ±1. */
+  /* Respaldo en movil: arrastrar con el dedo sobre la escena mueve el montaje.
+     El giroscopio (abajo) manda si existe; si el navegador lo bloquea, esto. */
+  var escenaToque = document.querySelector('.escena');
+  if (escenaToque && window.matchMedia('(pointer: coarse)').matches) {
+    var toqueInicio = null;
+    escenaToque.addEventListener('touchstart', function (e) {
+      var t = e.touches[0]; toqueInicio = { x: t.clientX, y: t.clientY, mx: mxObj, my: myObj };
+    }, { passive: true });
+    escenaToque.addEventListener('touchmove', function (e) {
+      if (!toqueInicio) return;
+      var t = e.touches[0];
+      mxObj = Math.max(-1, Math.min(1, toqueInicio.mx + (t.clientX - toqueInicio.x) / 140));
+      myObj = Math.max(-1, Math.min(1, toqueInicio.my + (t.clientY - toqueInicio.y) / 140));
+    }, { passive: true });
+    escenaToque.addEventListener('touchend', function () { toqueInicio = null; }, { passive: true });
+  }
+
   var giroBase = null;
   function orientar(e) {
     if (e.gamma === null || e.beta === null) return;
