@@ -44,8 +44,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+html { transition: background-color .35s; }
 body {
-  margin: 0; background: var(--void); color: var(--text-primary);
+  margin: 0; background: var(--void); color: var(--text-primary); transition: background-color .35s, color .35s;
   font-family: var(--fuente-texto); font-size: 17px; line-height: 1.6;
   -webkit-font-smoothing: antialiased; overflow-x: hidden;
 }
@@ -133,7 +134,15 @@ h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); line-height: 1.08; font-weight: 600;
 h3 { font-size: 1.28rem; line-height: 1.25; font-weight: 600; }
 .entradilla { font-size: clamp(1.04rem, 1.6vw, 1.2rem); color: var(--text-secondary); max-width: 60ch; margin: 24px 0 0; }
 section { padding: clamp(48px, 7vw, 92px) 0; }
-#escritorio, #diza { background: var(--surface-photo); border-top: 1px solid var(--border-faint); border-bottom: 1px solid var(--border-faint); }
+#escritorio, #diza, #diseno { background: var(--surface-photo); border-top: 1px solid var(--border-faint); border-bottom: 1px solid var(--border-faint); }
+.diseno { display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(20px, 3vw, 40px); align-items: start; margin-top: 26px; }
+.muestras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.muestra { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface); color: var(--text-primary); text-align: left; cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+.muestra:hover { transform: translateY(-2px); border-color: var(--accent); }
+.es-activa { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.muestra__nombre { font-size: .9rem; font-weight: 600; }
+.muestra__colores i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 5px; }
+@media (max-width: 860px) { .diseno { grid-template-columns: 1fr; } }
 
 /* ═══ EL ESCRITORIO QUE SE MONTA ═══════════════════════════════════════════
    Cuatro piezas REALES de la aplicación (lateral, chat, editor, Git) flotando
@@ -581,6 +590,27 @@ footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(
   </div>
 </section>
 
+<!-- ═══ ELIGE TU DISEÑO ══════════════════════════════════════════════════ -->
+<section id="diseno">
+  <div class="contenedor">
+    <p class="eyebrow aparece" data-t="dsEyebrow">Doce temas de serie</p>
+    <h2 class="aparece" data-t="dsTitulo">Elige tu diseño</h2>
+    <p class="entradilla aparece" data-t="dsEntrada">Pasa el ratón por un tema y la página entera se viste con él. Haz clic y se queda.</p>
+    <div class="diseno aparece">
+      <figure class="marco" style="margin:0">
+        <img src="img/18-selector-temas.webp" srcset="img/18-selector-temas.webp 860w, img/18-selector-temas@2x.webp 1720w" sizes="(max-width: 860px) 92vw, 560px" width="860" height="722" loading="lazy" decoding="async" alt="El selector de temas de IaDiza Desktop.">
+      </figure>
+      <div class="muestras" role="group" aria-label="Temas">
+        <button class="muestra es-activa" type="button" data-tema="midnight"><span class="muestra__nombre">Midnight Studio</span><span class="muestra__colores"><i style="background:#141416"></i><i style="background:#80CBC4"></i><i style="background:#EEFFFF"></i></span></button>
+        <button class="muestra" type="button" data-tema="contraste"><span class="muestra__nombre">Alto Contraste</span><span class="muestra__colores"><i style="background:#080808"></i><i style="background:#00f0ff"></i><i style="background:#ffffff"></i></span></button>
+        <button class="muestra" type="button" data-tema="dark"><span class="muestra__nombre">Dark</span><span class="muestra__colores"><i style="background:#1e1e1e"></i><i style="background:#007acc"></i><i style="background:#d4d4d4"></i></span></button>
+        <button class="muestra" type="button" data-tema="solarized"><span class="muestra__nombre">Solarized Dark</span><span class="muestra__colores"><i style="background:#002b36"></i><i style="background:#268bd2"></i><i style="background:#93a1a1"></i></span></button>
+        <button class="muestra" type="button" data-tema="tokyo"><span class="muestra__nombre">Tokyo Night</span><span class="muestra__colores"><i style="background:#1a1b26"></i><i style="background:#7aa2f7"></i><i style="background:#c0caf5"></i></span></button>
+        <button class="muestra" type="button" data-tema="synthwave"><span class="muestra__nombre">Synth Wave '84</span><span class="muestra__colores"><i style="background:#1a1333"></i><i style="background:#ff7edb"></i><i style="background:#ffffff"></i></span></button>
+      </div>
+    </div>
+  </div>
+</section>
 <!-- ═══ SECCIÓN 2 · DIZA ══════════════════════════════════════════════════ -->
 <section id="diza">
   <div class="contenedor">
@@ -847,6 +877,7 @@ var TEXTOS = { es: null, en: {
   c4t: 'Asks when it matters', c4d: 'Three trust levels. At the strictest every command goes through you; at the loosest she works alone and reports back.',
   c5t: 'Works where your code lives', c5d: 'No uploading the project somewhere for her to look at it. Diza reads and writes on your disk, in your folder, the way you would.',
   figR: 'A real answer: reasoning folded at the top, the reply, and underneath the log of what she did.',
+  dsEyebrow: 'Twelve built-in themes', dsTitulo: 'Choose your look', dsEntrada: 'Hover a theme and the whole page dresses in it. Click and it stays.',
   d2t: 'Every tool, with its arguments',
   d2d: 'Under each answer sits its log. Expand it and see which tool she used, on which file, with what result. It is not wiped on close: it is there tomorrow.',
   privEyebrow: 'Confidentiality',
@@ -886,6 +917,57 @@ var TEXTOS = { es: null, en: {
   try { guardado = localStorage.getItem('diza-idioma'); } catch (e) { /* ignorado */ }
   var inicial = guardado || ((navigator.language || 'es').slice(0, 2) === 'en' ? 'en' : 'es');
   if (inicial !== 'es') aplicar(inicial);
+})();
+</script>
+<script>
+/* Elige tu diseño: hover viste la página con el tema, clic lo fija. Los seis
+   temas son los reales de IaDiza Desktop. Fer, 20-09-2026. */
+(function () {
+  var TEMAS = {
+    midnight:  { void: '#141416', surface: '#0d0d0f', accent: '#80CBC4', accentBright: '#A5D6D3', text: '#EEFFFF', text2: '#B0BEC5' },
+    contraste: { void: '#080808', surface: '#000000', accent: '#00f0ff', accentBright: '#66f6ff', text: '#ffffff', text2: '#c8c8d8' },
+    dark:      { void: '#1e1e1e', surface: '#252526', accent: '#007acc', accentBright: '#3aa0e6', text: '#d4d4d4', text2: '#a0a0a0' },
+    solarized: { void: '#002b36', surface: '#073642', accent: '#268bd2', accentBright: '#5aa9e6', text: '#93a1a1', text2: '#839496' },
+    tokyo:     { void: '#1a1b26', surface: '#24283b', accent: '#7aa2f7', accentBright: '#a3bffa', text: '#c0caf5', text2: '#9aa5ce' },
+    synthwave: { void: '#1a1333', surface: '#241b3e', accent: '#ff7edb', accentBright: '#ffa6e8', text: '#ffffff', text2: '#c8c2e0' }
+  };
+  var raiz = document.documentElement;
+  var PROPS = ['--void', '--surface', '--elevated', '--raised', '--accent', '--accent-bright', '--accent-dim', '--accent-muted', '--text-primary', '--text-secondary'];
+  function hexARgb(h) { var n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function mezcla(a, b, p) { var x = hexARgb(a), y = hexARgb(b); return 'rgb(' + x.map(function (v, i) { return Math.round(v * (1 - p) + y[i] * p); }).join(',') + ')'; }
+  function vestir(nombre) {
+    var t = TEMAS[nombre];
+    if (!t) { PROPS.forEach(function (p) { raiz.style.removeProperty(p); }); return; }
+    raiz.style.setProperty('--void', t.void);
+    raiz.style.setProperty('--surface', t.surface);
+    raiz.style.setProperty('--elevated', mezcla(t.surface, '#ffffff', 0.06));
+    raiz.style.setProperty('--raised', mezcla(t.surface, '#ffffff', 0.10));
+    raiz.style.setProperty('--accent', t.accent);
+    raiz.style.setProperty('--accent-bright', t.accentBright);
+    raiz.style.setProperty('--accent-dim', mezcla(t.accent, t.void, 0.8));
+    var a = hexARgb(t.accent);
+    raiz.style.setProperty('--accent-muted', 'rgba(' + a.join(',') + ',0.12)');
+    raiz.style.setProperty('--text-primary', t.text);
+    raiz.style.setProperty('--text-secondary', t.text2);
+  }
+  var fijado = null;
+  try { fijado = localStorage.getItem('iadiza-tema'); } catch (e) { fijado = null; }
+  if (fijado && !TEMAS[fijado]) fijado = null;
+  var muestras = Array.prototype.slice.call(document.querySelectorAll('.muestra[data-tema]'));
+  function marcar(nombre) { muestras.forEach(function (m) { m.classList.toggle('es-activa', m.getAttribute('data-tema') === (nombre || 'midnight')); }); }
+  if (fijado) { vestir(fijado); marcar(fijado); }
+  muestras.forEach(function (m) {
+    var nombre = m.getAttribute('data-tema');
+    m.addEventListener('mouseenter', function () { vestir(nombre); });
+    m.addEventListener('focus', function () { vestir(nombre); });
+    m.addEventListener('mouseleave', function () { vestir(fijado); });
+    m.addEventListener('blur', function () { vestir(fijado); });
+    m.addEventListener('click', function () {
+      fijado = nombre;
+      try { localStorage.setItem('iadiza-tema', nombre); } catch (e) { /* sin almacenamiento */ }
+      vestir(nombre); marcar(nombre);
+    });
+  });
 })();
 </script>
 </body>
