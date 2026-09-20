@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://iadizate.com/sitemap.xml
+Sitemap: https://gurrumio.github.io/iadiza-web/sitemap.xml
