@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IaDiza Desktop</title>
+<meta name="description" content="Un escritorio donde el editor, la terminal, Git y una IA con acceso real trabajan sobre el mismo proyecto. Descarga gratuita.">
+<link rel="icon" href="mark.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tokens: copiados literalmente de src/renderer/index.css, que es de donde los
+   lee la aplicación. La web y las capturas tienen que ser el mismo sitio.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --void: #181818;  --surface: #212121;  --elevated: #2b2b2b;  --raised: #323232;
+  --accent: #80CBC4;  --accent-bright: #A5D6D3;  --accent-dim: #1a3836;
+  --accent-muted: rgba(128,203,196,0.12);
+  --thinking: #C792EA;  --success: #C3E88D;  --warning: #FFCB6B;  --info: #82AAFF;
+  --text-primary: #EEFFFF;  --text-secondary: #B0BEC5;  --text-tertiary: #546E7A;
+  --border-faint: rgba(255,255,255,0.06);
+  --border-subtle: rgba(255,255,255,0.10);
+  --border-medium: rgba(255,255,255,0.15);
+
+  --fuente-titulo: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fuente-texto: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fuente-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  --ancho: 1240px;
+  --gutter: 24px;
+
+  /* Escritas por el script en cada fotograma. TODA la animación de la página
+     cuelga de estas tres, así que solo hay un sitio donde tocar el movimiento.
+       --p   0→1  progreso del montaje del escritorio
+       --mx  −1→1 ratón en horizontal
+       --my  −1→1 ratón en vertical */
+  --p: 0;  --mx: 0;  --my: 0;
+
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--void); color: var(--text-primary);
+  font-family: var(--fuente-texto); font-size: 17px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+
+/* Rejilla técnica de fondo: muy tenue, da profundidad sin dibujar nada. */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(52% 44% at 18% 4%, rgba(128,203,196,0.13), transparent 68%),
+    radial-gradient(40% 40% at 86% 10%, rgba(199,146,234,0.08), transparent 70%),
+    linear-gradient(transparent 0 calc(100% - 1px), var(--border-faint) 100%) 0 0 / 100% 74px,
+    linear-gradient(90deg, transparent 0 calc(100% - 1px), var(--border-faint) 100%) 0 0 / 74px 100%;
+  mask-image: linear-gradient(180deg, #000 0, #000 60vh, transparent 95vh);
+}
+.capa { position: relative; z-index: 1; }
+.contenedor { width: 100%; max-width: var(--ancho); margin-inline: auto; padding-inline: var(--gutter); }
+
+/* ─── Nav ──────────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 60;
+  background: color-mix(in srgb, var(--void) 78%, transparent);
+  backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-faint);
+}
+.nav__fila { display: flex; align-items: center; gap: 18px; height: 64px; }
+.marca { display: flex; align-items: center; gap: 11px; text-decoration: none; margin-right: auto; }
+/* El logo es un ';D': el guiño de los chats de antes de que hubiera emojis.
+   Va EN LINEA y no como <img> para poder tocarle el punto del ';' — que es el
+   ojo. Al pasar por encima, guiña. Es el unico adorno de la pagina que no
+   explica nada del producto, y se lo permite porque es la marca contando su
+   propio chiste. */
+.marca .guino { color: var(--accent); overflow: visible; }
+.guino__ojo { transform-origin: 240px 320px; transition: transform .16s ease; }
+.marca:hover .guino__ojo { animation: guinar 1.05s ease; }
+@keyframes guinar {
+  0%, 24%  { transform: scaleY(1); }
+  32%, 40% { transform: scaleY(.12); }
+  50%,100% { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marca:hover .guino__ojo { animation: none; }
+}
+.marca span { font-family: var(--fuente-titulo); font-weight: 600; font-size: 18px; letter-spacing: -0.01em; white-space: nowrap; }
+/* "IaDiza Desktop" es largo: en pantallas estrechas se queda solo el logo, que
+   es lo que la identifica de verdad. */
+@media (max-width: 520px) { .marca span { display: none; } }
+.nav__enlaces { display: flex; gap: 3px; }
+.nav__enlaces a {
+  padding: 8px 13px; border-radius: 9px; color: var(--text-secondary);
+  text-decoration: none; font-size: 15px; transition: color .18s, background .18s;
+}
+.nav__enlaces a:hover { color: var(--text-primary); background: var(--accent-muted); }
+@media (max-width: 760px) { .nav__enlaces { display: none; } }
+.idiomas { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--border-faint); border-radius: 10px; }
+.idiomas button {
+  font: 600 12px/1 var(--fuente-texto); letter-spacing: .07em; padding: 7px 10px;
+  border: 0; border-radius: 7px; background: transparent; color: var(--text-tertiary); cursor: pointer;
+}
+.idiomas button[aria-pressed="true"] { background: var(--accent-muted); color: var(--accent); }
+
+/* ─── Botones ──────────────────────────────────────────────────────────── */
+.boton {
+  display: inline-flex; align-items: center; gap: 9px; padding: 14px 24px;
+  border-radius: 12px; font: 600 15px/1 var(--fuente-texto); text-decoration: none;
+  border: 1px solid transparent; cursor: pointer;
+  transition: transform .2s, background .2s, border-color .2s, color .2s;
+}
+.boton--fuerte { background: var(--accent); color: #0b1b1a; box-shadow: 0 10px 30px -12px rgba(128,203,196,.85); }
+.boton--fuerte:hover { background: var(--accent-bright); transform: translateY(-2px); }
+.boton--suave { border-color: var(--border-medium); color: var(--text-primary); }
+.boton--suave:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ─── Tipografía ───────────────────────────────────────────────────────── */
+.eyebrow {
+  font: 600 12px/1 var(--fuente-texto); letter-spacing: .17em; text-transform: uppercase;
+  color: var(--accent); margin: 0 0 18px; display: flex; align-items: center; gap: 10px;
+}
+.eyebrow::before { content: ''; width: 26px; height: 1px; background: currentColor; opacity: .55; }
+h1, h2, h3 { font-family: var(--fuente-titulo); letter-spacing: -0.028em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.4rem, 6.4vw, 4.6rem); line-height: 1.02; font-weight: 700; }
+h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); line-height: 1.08; font-weight: 600; }
+h3 { font-size: 1.28rem; line-height: 1.25; font-weight: 600; }
+.entradilla { font-size: clamp(1.04rem, 1.6vw, 1.2rem); color: var(--text-secondary); max-width: 60ch; margin: 24px 0 0; }
+section { padding: clamp(80px, 11vw, 150px) 0; }
+
+/* ═══ EL ESCRITORIO QUE SE MONTA ═══════════════════════════════════════════
+   Cuatro piezas REALES de la aplicación (lateral, chat, editor, Git) flotando
+   en el espacio. Al bajar, se juntan hasta formar la ventana. No es un adorno:
+   es exactamente lo que vende el producto — muchas herramientas, un solo sitio.
+   Todo sale de --p, --mx y --my; ni un keyframe.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.montaje { height: 235vh; position: relative; }
+.montaje__pegado {
+  position: sticky; top: 0; height: 100vh;
+  display: grid; place-items: center; overflow: hidden;
+}
+.escena {
+  position: relative;
+  width: min(1080px, 90vw);
+  aspect-ratio: 16 / 10;
+  margin-bottom: clamp(70px, 11vh, 120px);
+  perspective: 1500px;
+  perspective-origin: 50% 46%;
+}
+.escena__mundo {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+  transform:
+    rotateX(calc((9deg - var(--p) * 9deg) + var(--my) * -3.2deg))
+    rotateY(calc(var(--mx) * 4.6deg))
+    scale(calc(0.9 + var(--p) * 0.1));
+}
+.pieza {
+  position: absolute;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  box-shadow: 0 34px 90px -28px rgba(0,0,0,.95);
+  transform-style: preserve-3d;
+}
+.pieza img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+
+/* Cada pieza viaja desde su sitio despiezado (p=0) hasta su hueco en la ventana
+   (p=1). Las proporciones salen de la propia captura. */
+.pieza--lateral {
+  left: 0; top: 0; width: 23%; height: 100%;
+  transform:
+    translate3d(calc(0% - (1 - var(--p)) * 16%), calc((1 - var(--p)) * -6%), calc(120px - var(--p) * 120px))
+    rotateY(calc((1 - var(--p)) * 13deg));
+}
+.pieza--chat {
+  left: 23%; top: 0; width: 77%; height: 100%;
+  transform:
+    translate3d(calc((1 - var(--p)) * 9%), calc((1 - var(--p)) * 4%), calc(-40px + var(--p) * 40px))
+    rotateY(calc((1 - var(--p)) * -6deg));
+}
+.pieza--editor {
+  left: 38%; top: 12%; width: 46%; height: 62%;
+  opacity: calc(1 - var(--p) * 0.94);
+  transform:
+    translate3d(calc((1 - var(--p)) * 26%), calc((1 - var(--p)) * -20%), calc(240px - var(--p) * 240px))
+    rotateY(calc((1 - var(--p)) * -14deg)) rotateX(calc((1 - var(--p)) * 5deg));
+}
+.pieza--git {
+  left: 6%; top: 42%; width: 30%; height: 54%;
+  opacity: calc(1 - var(--p) * 0.94);
+  transform:
+    translate3d(calc((1 - var(--p)) * -24%), calc((1 - var(--p)) * 22%), calc(190px - var(--p) * 190px))
+    rotateY(calc((1 - var(--p)) * 18deg)) rotateX(calc((1 - var(--p)) * -4deg));
+}
+
+/* Etiquetas que nombran cada pieza mientras están separadas. */
+.etiqueta {
+  position: absolute; z-index: 5;
+  font: 600 11.5px/1 var(--fuente-mono); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent); background: color-mix(in srgb, var(--void) 86%, transparent);
+  border: 1px solid var(--border-subtle); border-radius: 7px; padding: 7px 11px;
+  opacity: calc(1 - var(--p) * 2.1);
+  white-space: nowrap;
+}
+.etiqueta--lateral { left: 1%; top: -5%; }
+.etiqueta--editor { right: 5%; top: 3%; }
+.etiqueta--git { left: 2%; bottom: 1%; }
+.etiqueta--chat { right: 2%; bottom: -5%; }
+
+/* Va DEBAJO de la escena, no encima: con la ventana ya montada se solapaba con
+   el compositor del chat y no se leia ni una cosa ni la otra. */
+.montaje__texto {
+  position: absolute; left: 50%; bottom: clamp(10px, 2.4vh, 26px); transform: translateX(-50%);
+  text-align: center; width: min(640px, 88vw);
+  opacity: calc((var(--p) - 0.55) * 2.6);
+  pointer-events: none;
+}
+.montaje__texto h2 { font-size: clamp(1.4rem, 3vw, 2.1rem); }
+.montaje__texto p { margin: 12px 0 0; color: var(--text-secondary); font-size: 16px; }
+
+@media (max-width: 860px) {
+  .montaje { height: auto; }
+  .montaje__pegado { position: static; height: auto; padding: 36px 0; overflow: visible; }
+  .escena { aspect-ratio: 16 / 11; }
+  .escena__mundo { transform: none; }
+  .pieza--editor, .pieza--git, .etiqueta { display: none; }
+  .pieza--lateral, .pieza--chat { transform: none; }
+  .montaje__texto { position: static; transform: none; opacity: 1; width: auto; margin-top: 26px; }
+}
+
+/* ═══ RECORRIDO PEGAJOSO ═══════════════════════════════════════════════════
+   Una captura grande fija mientras el texto pasa al lado. Es la única manera de
+   enseñar la interfaz A TAMAÑO LEGIBLE: recortada al trozo que importa, nunca
+   la ventana entera encogida dentro de una tarjeta.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.recorrido { display: grid; gap: clamp(30px, 4vw, 60px); grid-template-columns: 1fr; margin-top: clamp(42px, 5vw, 70px); }
+@media (min-width: 980px) { .recorrido { grid-template-columns: 0.82fr 1.18fr; align-items: start; } }
+.recorrido__pasos { display: grid; gap: 10px; }
+.paso {
+  border-left: 2px solid var(--border-faint);
+  padding: 18px 0 18px 22px; cursor: pointer;
+  transition: border-color .35s, opacity .35s; opacity: .45;
+}
+.paso.activo { border-color: var(--accent); opacity: 1; }
+.paso h3 { font-size: 1.12rem; }
+.paso p { margin: 8px 0 0; color: var(--text-secondary); font-size: 15px; }
+.recorrido__visor { position: sticky; top: 108px; }
+.visor {
+  position: relative; border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border-subtle); background: var(--surface);
+  box-shadow: 0 30px 90px -34px rgba(0,0,0,.95);
+  aspect-ratio: 16 / 11;
+}
+.visor img {
+  position: absolute; left: 0; right: 0; top: 32px; height: calc(100% - 32px); width: 100%;
+  object-fit: cover; object-position: top left;
+  opacity: 0; transform: scale(1.025);
+  transition: opacity .55s ease, transform .55s cubic-bezier(.22,.61,.36,1);
+}
+.visor img.activa { opacity: 1; transform: none; }
+.visor__barra {
+  position: absolute; left: 0; right: 0; top: 0; height: 32px; z-index: 2;
+  background: color-mix(in srgb, var(--elevated) 94%, transparent);
+  border-bottom: 1px solid var(--border-faint);
+  display: flex; align-items: center; gap: 7px; padding: 0 13px;
+}
+.visor__punto { width: 9px; height: 9px; border-radius: 50%; background: var(--border-medium); }
+.visor__ruta { margin-left: 8px; font: 500 11.5px/1 var(--fuente-mono); color: var(--text-tertiary); }
+
+/* ─── Detalle a dos columnas ───────────────────────────────────────────── */
+.detalle { display: grid; gap: clamp(28px, 4vw, 54px); align-items: center; margin-top: clamp(50px, 6vw, 92px); }
+@media (min-width: 940px) {
+  .detalle { grid-template-columns: 1fr 1.25fr; }
+  .detalle--inv > :first-child { order: 2; }
+}
+.marco {
+  border-radius: 13px; overflow: hidden; border: 1px solid var(--border-subtle);
+  box-shadow: 0 26px 70px -30px rgba(0,0,0,.92);
+  transform: perspective(1200px) rotateY(calc(var(--mx) * 1.6deg)) rotateX(calc(var(--my) * -1.1deg));
+}
+.nota-pie { margin: 14px 0 0; font: 500 12.5px/1.5 var(--fuente-mono); color: var(--text-tertiary); }
+
+/* ─── Capacidades ──────────────────────────────────────────────────────── */
+.capacidades { list-style: none; margin: 34px 0 0; padding: 0; }
+.capacidad { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 19px 0; border-top: 1px solid var(--border-faint); }
+.capacidad:last-child { border-bottom: 1px solid var(--border-faint); }
+.capacidad__marca { width: 9px; height: 9px; margin-top: 9px; transform: rotate(45deg); background: var(--accent); opacity: .9; }
+.capacidad p { margin: 6px 0 0; color: var(--text-secondary); font-size: 15px; }
+
+/* Bloque de confidencialidad: tiene peso propio porque es una promesa, y las
+   promesas de seguridad se leen despacio. Sin iconos ni adornos — aqui lo que
+   convence es lo concreto. */
+.privacidad {
+  margin: clamp(56px, 7vw, 92px) 0 0;
+  padding: clamp(30px, 4vw, 48px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--accent-dim) 70%, transparent), transparent 62%),
+    var(--surface);
+}
+.privacidad h3 { font-size: clamp(1.35rem, 2.6vw, 1.95rem); }
+.privacidad > p { max-width: 62ch; }
+.privacidad > p:not(.privacidad__letra) { margin: 16px 0 0; color: var(--text-secondary); font-size: clamp(1rem, 1.5vw, 1.12rem); }
+.privacidad__lista {
+  list-style: none; margin: 26px 0 0; padding: 0;
+  display: grid; gap: 1px;
+  background: var(--border-faint);
+  border-block: 1px solid var(--border-faint);
+}
+.privacidad__lista li {
+  background: var(--surface);
+  padding: 16px 2px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.privacidad__lista b { color: var(--text-primary); font-weight: 600; }
+/* La letra pequena NO es letra pequena escondida: es la frase que hace creible
+   todo lo de arriba, y por eso se lee. */
+.privacidad__letra {
+  margin: 24px 0 0;
+  color: var(--text-tertiary);
+  font-size: 14.5px;
+  line-height: 1.62;
+  max-width: 68ch;
+}
+
+.cita {
+  margin: clamp(56px, 7vw, 92px) 0 0; padding: clamp(32px, 4.5vw, 54px);
+  border: 1px solid var(--border-subtle); border-radius: 18px;
+  background: linear-gradient(135deg, var(--accent-dim), transparent 58%), var(--surface);
+  font-family: var(--fuente-titulo); font-size: clamp(1.3rem, 2.8vw, 2rem);
+  font-weight: 600; line-height: 1.28; letter-spacing: -0.025em; text-wrap: balance;
+}
+
+.descarga { text-align: center; }
+.descarga .entradilla { margin-inline: auto; }
+.descarga .eyebrow { justify-content: center; }
+.descarga__botones { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+.plataformas { display: flex; justify-content: center; flex-wrap: wrap; gap: 22px; margin-top: 28px; font: 500 13px/1 var(--fuente-mono); color: var(--text-tertiary); }
+
+footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(--text-tertiary); font-size: 14px; }
+.footer__fila { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; }
+
+/* ─── Aparición ────────────────────────────────────────────────────────── */
+/* Reposo VISIBLE. `armado` solo lo pone el script en lo que queda bajo el
+   pliegue al cargar, y lo quita al entrar en pantalla. Si el script falla o
+   alguien llega sin JavaScript, la página se lee igual. */
+.aparece { transition: opacity .75s ease, transform .75s cubic-bezier(.22,.61,.36,1); }
+.aparece.armado { opacity: 0; transform: translateY(22px); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .escena__mundo, .pieza, .marco { transform: none !important; }
+  .pieza--editor, .pieza--git { opacity: .08; }
+  .etiqueta { opacity: 0; }
+  .montaje { height: auto; }
+  .montaje__pegado { position: static; height: auto; padding: 30px 0; overflow: visible; }
+  .montaje__texto { position: static; transform: none; opacity: 1; width: auto; margin-top: 24px; }
+  .aparece, .aparece.armado { opacity: 1; transform: none; transition: none; }
+  .boton:hover { transform: none; }
+  .visor img { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="capa">
+
+<nav class="nav">
+  <div class="contenedor nav__fila">
+    <a class="marca" href="#arriba">
+      <svg class="guino" viewBox="120 250 500 300" width="34" height="20" aria-hidden="true">
+        <g fill="currentColor" transform="translate(-20 0)">
+          <circle class="guino__ojo" cx="240" cy="320" r="45"/>
+          <path d="M 240 390 C 270 390, 285 410, 285 435 C 285 475, 220 515, 185 530 L 165 500 C 195 480, 230 450, 230 430 C 230 410, 210 390, 240 390 Z"/>
+          <path d="M 370 270 L 480 270 C 560 270, 600 320, 600 400 C 600 480, 560 530, 480 530 L 370 530 Z M 420 320 L 420 480 L 475 480 C 520 480, 550 450, 550 400 C 550 350, 520 320, 475 320 Z"/>
+        </g>
+      </svg>
+      <span data-t="marca">IaDiza Desktop</span>
+    </a>
+    <div class="nav__enlaces">
+      <a href="#escritorio" data-t="nav1">El escritorio</a>
+      <a href="#diza" data-t="nav2">Diza</a>
+      <a href="#descarga" data-t="nav3">Descargar</a>
+    </div>
+    <div class="idiomas" role="group" aria-label="Idioma">
+      <button type="button" data-idioma="es" aria-pressed="true">ES</button>
+      <button type="button" data-idioma="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ PORTADA ═══════════════════════════════════════════════════════════ -->
+<header id="arriba" style="padding: clamp(60px,9vw,110px) 0 0">
+  <div class="contenedor">
+    <p class="eyebrow" data-t="heroEyebrow">Entorno de desarrollo de escritorio</p>
+    <h1 data-t="heroTitulo">Todas tus herramientas.<br>Un solo escritorio.</h1>
+    <p class="entradilla" data-t="heroSub">
+      Editor, terminal, Git, explorador y una IA con acceso real al proyecto. No en pestañas
+      distintas ni en aplicaciones distintas: en el mismo sitio, trabajando sobre lo mismo.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:36px">
+      <a class="boton boton--fuerte" href="#descarga">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span data-t="heroCta">Descargar gratis</span>
+      </a>
+      <a class="boton boton--suave" href="#diza" data-t="heroCta2">Conoce a Diza</a>
+      <span style="font-size:13.5px;color:var(--text-tertiary);display:flex;align-items:center;gap:8px">
+        <i style="width:6px;height:6px;border-radius:50%;background:var(--success);display:block"></i>
+        <span data-t="heroNota">Windows, macOS y Linux · sin cuenta para empezar</span>
+      </span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ EL ESCRITORIO SE MONTA ════════════════════════════════════════════ -->
+<div class="montaje" id="montaje">
+  <div class="montaje__pegado">
+    <div class="escena">
+      <div class="escena__mundo">
+        <div class="pieza pieza--git">
+          <img src="img/04-git.webp" srcset="img/04-git.webp 1600w, img/04-git@2x.webp 2400w"
+               sizes="360px" alt="Panel de Git con la rama activa y los ficheros modificados.">
+        </div>
+        <div class="pieza pieza--editor">
+          <img src="img/14-editor.webp" srcset="img/14-editor.webp 1452w"
+               sizes="520px" alt="El editor de código con un fichero TypeScript abierto.">
+        </div>
+        <div class="pieza pieza--lateral">
+          <img src="img/20-lateral.webp" srcset="img/20-lateral.webp 550w"
+               sizes="280px" alt="El lateral del escritorio con sus secciones.">
+        </div>
+        <div class="pieza pieza--chat">
+          <img src="img/23-chat-panel.webp" srcset="img/23-chat-panel.webp 1600w, img/23-chat-panel@2x.webp 2400w"
+               sizes="860px" alt="Diza respondiendo sobre un fichero del proyecto.">
+        </div>
+
+        <span class="etiqueta etiqueta--lateral" data-t="et1">Explorador · Git · Terminal</span>
+        <span class="etiqueta etiqueta--editor" data-t="et2">Editor</span>
+        <span class="etiqueta etiqueta--git" data-t="et3">Control de versiones</span>
+        <span class="etiqueta etiqueta--chat" data-t="et4">Diza, con acceso al proyecto</span>
+      </div>
+    </div>
+
+    <div class="montaje__texto">
+      <h2 data-t="montajeTitulo">Piezas sueltas, no. Un escritorio.</h2>
+      <p data-t="montajeSub">Lo que en otras herramientas son cuatro programas abiertos a la vez, aquí es una sola ventana.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECCIÓN 1 · EL ESCRITORIO ═════════════════════════════════════════ -->
+<section id="escritorio">
+  <div class="contenedor">
+    <p class="eyebrow aparece" data-t="s1Eyebrow">No es un IDE con un chat al lado</p>
+    <h2 class="aparece" data-t="s1Titulo">Un IDE no trabaja solo.<br>Un chat no ve tu proyecto.</h2>
+    <p class="entradilla aparece" data-t="s1Entrada">
+      Y un agente de terminal hace las dos cosas sin dejarte mirar. IaDiza Desktop junta las tres
+      piezas donde deben estar: a la vista, sobre el mismo proyecto, y con todo lo que se toca
+      escrito en un sitio al que puedas volver.
+    </p>
+
+    <div class="recorrido">
+      <div class="recorrido__pasos" id="pasos">
+        <article class="paso activo" data-img="0" data-ruta="~/proyecto · chat">
+          <h3 data-t="p1t">Un chat que actúa</h3>
+          <p data-t="p1d">Diza abre los ficheros, lanza los comandos y aplica los cambios sobre el proyecto que tienes abierto. No te cuenta lo que haría.</p>
+        </article>
+        <article class="paso" data-img="1" data-ruta="~/proyecto · ide">
+          <h3 data-t="p2t">El IDE, aparte y completo</h3>
+          <p data-t="p2d">Editor con resaltado, árbol del proyecto, panel de problemas y terminal. Una superficie propia para cuando toca escribir código.</p>
+        </article>
+        <article class="paso" data-img="2" data-ruta="~/proyecto · git">
+          <h3 data-t="p3t">Git sin salir de aquí</h3>
+          <p data-t="p3d">Rama, cambios y diferencias dentro del escritorio. Ves qué se ha tocado antes de confirmarlo.</p>
+        </article>
+        <article class="paso" data-img="3" data-ruta="~/proyecto · despacho">
+          <h3 data-t="p4t">El despacho</h3>
+          <p data-t="p4d">Varias IAs sentadas a la misma mesa sobre el mismo asunto. Cada una aporta; tú lees las respuestas juntas y decides.</p>
+        </article>
+        <article class="paso" data-img="4" data-ruta="ajustes · origen del modelo">
+          <h3 data-t="p5t">Tu clave, tu modelo</h3>
+          <!-- Sin nombrar proveedores: citar marcas en material comercial sugiere
+               un acuerdo que no existe, y algunas no lo permiten en sus
+               condiciones. La frase dice lo mismo sin ese riesgo. -->
+          <p data-t="p5d">Registra tu clave de los principales proveedores de IA del mundo y elige el modelo por conversación. El que quieras, cuando quieras.</p>
+        </article>
+      </div>
+
+      <div class="recorrido__visor">
+        <div class="visor" id="visor">
+          <div class="visor__barra">
+            <i class="visor__punto"></i><i class="visor__punto"></i><i class="visor__punto"></i>
+            <span class="visor__ruta" id="visorRuta">~/proyecto · chat</span>
+          </div>
+          <img class="activa" src="img/10-respuesta.webp" srcset="img/10-respuesta.webp 1504w" alt="Una respuesta de Diza con el registro de lo que hizo.">
+          <img src="img/08-ide.webp" srcset="img/08-ide.webp 1600w, img/08-ide@2x.webp 2400w" alt="El IDE con un fichero abierto, problemas y terminal." loading="lazy">
+          <img src="img/04-git.webp" srcset="img/04-git.webp 1600w, img/04-git@2x.webp 2400w" alt="El panel de Git dentro del escritorio." loading="lazy">
+          <img src="img/06-despacho.webp" srcset="img/06-despacho.webp 1600w, img/06-despacho@2x.webp 2400w" alt="El despacho, con varias IAs sobre el mismo asunto." loading="lazy">
+          <img src="img/15-origen-modelo.webp" srcset="img/15-origen-modelo.webp 1350w" alt="Ajuste «Origen del modelo»: de dónde sale el modelo que responde." loading="lazy">
+        </div>
+        <p class="nota-pie" data-t="notaVisor">Capturas reales de la aplicación, sin retocar.</p>
+      </div>
+    </div>
+
+    <div class="detalle detalle--inv">
+      <div class="aparece">
+        <h3 data-t="d1t">Y 27 idiomas, de verdad</h3>
+        <p class="entradilla" style="margin-top:14px" data-t="d1d">
+          La interfaz entera, no cuatro botones: menús, ajustes, avisos y diálogos de permiso.
+          Se cambia en caliente, sin reinstalar ni reiniciar.
+        </p>
+        <p class="nota-pie" data-t="d1n">es · en · pt · fr · de · it · nl · pl · ja · zh · +17</p>
+      </div>
+      <figure class="marco aparece" style="margin:0">
+        <img src="img/07-ajustes.webp" srcset="img/07-ajustes.webp 1600w, img/07-ajustes@2x.webp 2400w"
+             loading="lazy" alt="Ajustes de Diza: el selector de idioma de la interfaz, con español elegido.">
+      </figure>
+    </div>
+
+    <p class="entradilla aparece" style="max-width:62ch" data-t="s1Cierre">
+      <b style="color:var(--text-primary)">Y esto es lo que cabe en una página.</b> El resto se
+      descubre usándolo: paneles que se separan en ventanas propias, rutinas en segundo plano,
+      conexión a máquinas remotas y un largo etcétera.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ SECCIÓN 2 · DIZA ══════════════════════════════════════════════════ -->
+<section id="diza">
+  <div class="contenedor">
+    <p class="eyebrow aparece" data-t="s2Eyebrow">La que trabaja dentro</p>
+    <h2 class="aparece" data-t="s2Titulo">Diza no solo responde.<br>Trabaja contigo. Y para ti.</h2>
+    <p class="entradilla aparece" data-t="s2Entrada">
+      Tu compañera para el desarrollo diario. No espera a que le pegues el código en un cuadro
+      de texto: vive dentro del escritorio, con el proyecto delante. Lo lee, lo ejecuta, lo
+      cambia y te enseña exactamente qué ha hecho.
+    </p>
+
+    <div class="detalle">
+      <div>
+        <ul class="capacidades">
+          <li class="capacidad aparece">
+            <i class="capacidad__marca" aria-hidden="true"></i>
+            <div><h3 data-t="c1t">Lee antes de tocar</h3>
+            <p data-t="c1d">Busca por el proyecto y abre los ficheros que necesita. No contesta de memoria sobre código que no ha mirado.</p></div>
+          </li>
+          <li class="capacidad aparece">
+            <i class="capacidad__marca" aria-hidden="true"></i>
+            <div><h3 data-t="c2t">Ejecuta y comprueba</h3>
+            <p data-t="c2d">Tests, dependencias, builds. Lee la salida y actúa en consecuencia, en lugar de dar por bueno el primer intento.</p></div>
+          </li>
+          <li class="capacidad aparece">
+            <i class="capacidad__marca" aria-hidden="true"></i>
+            <div><h3 data-t="c3t">Edita con red</h3>
+            <p data-t="c3d">Los cambios llegan a una tarjeta de revisión: qué ficheros tocó y qué escribió. Tú decides qué se queda.</p></div>
+          </li>
+          <li class="capacidad aparece">
+            <i class="capacidad__marca" aria-hidden="true"></i>
+            <div><h3 data-t="c4t">Pide permiso cuando toca</h3>
+            <p data-t="c4d">Tres niveles de confianza. En el más estricto cada comando pasa por ti; en el más suelto trabaja sola y te lo cuenta después.</p></div>
+          </li>
+          <li class="capacidad aparece">
+            <i class="capacidad__marca" aria-hidden="true"></i>
+            <div><h3 data-t="c5t">Trabaja donde vive tu código</h3>
+            <p data-t="c5d">Nada de subir el proyecto a ningún sitio para que lo mire. Diza lee y escribe en tu disco, en tu carpeta, como lo harías tú.</p></div>
+          </li>
+        </ul>
+      </div>
+
+      <figure class="marco aparece" style="margin:0">
+        <img src="img/10-respuesta.webp" srcset="img/10-respuesta.webp 1504w"
+             loading="lazy" alt="Respuesta de Diza: razonamiento plegado, la contestación, y debajo el bloque «Lo que he hecho».">
+        <figcaption style="padding:14px 18px;border-top:1px solid var(--border-faint);color:var(--text-secondary);font-size:14px" data-t="figR">
+          Una respuesta real: el razonamiento plegado arriba, la contestación, y debajo el registro de lo que hizo.
+        </figcaption>
+      </figure>
+    </div>
+
+    <div class="detalle detalle--inv">
+      <div class="aparece">
+        <h3 data-t="d2t">Cada herramienta, con sus argumentos</h3>
+        <p class="entradilla" style="margin-top:14px" data-t="d2d">
+          Debajo de cada respuesta queda su registro. Se despliega y ves qué herramienta usó,
+          sobre qué fichero y con qué resultado. No se borra al cerrar: está ahí mañana.
+        </p>
+      </div>
+      <figure class="marco aparece" style="margin:0">
+        <img src="img/11-registro.webp" srcset="img/11-registro.webp 1388w"
+             loading="lazy" alt="El bloque «Lo que he hecho» desplegado, con las herramientas que usó.">
+      </figure>
+    </div>
+
+    <div class="privacidad aparece">
+      <p class="eyebrow" data-t="privEyebrow">Confidencialidad</p>
+      <h3 data-t="privTitulo">Tu trabajo se queda en tu ordenador</h3>
+      <p data-t="privSub">
+        Las conversaciones, la memoria, los ficheros y los ajustes viven en tu disco. No en un
+        servidor nuestro: no hay ninguno con tu proyecto dentro.
+      </p>
+      <ul class="privacidad__lista">
+        <li data-t="priv1"><b>Sin cuenta para trabajar.</b> Te lo bajas, lo abres y empiezas.</li>
+        <li data-t="priv2"><b>Sin sincronización.</b> Nada se sube «por si acaso»: tus conversaciones y tu memoria no salen de la máquina.</li>
+        <li data-t="priv3"><b>Sin telemetría.</b> No medimos qué haces ni con qué.</li>
+      </ul>
+      <p class="privacidad__letra" data-t="privLetra">
+        Lo único que viaja es lo que la IA necesita leer para contestarte, y va al modelo que
+        hayas elegido tú. Nada más, y a nadie más. Si quieres ni eso, el motor admite un
+        servidor de inferencia en tu propia red.
+      </p>
+    </div>
+
+    <p class="cita aparece" data-t="cita">Tu código sigue siendo tuyo. Ahora tienes con quién escribirlo.</p>
+  </div>
+</section>
+
+<!-- ═══ DESCARGA ══════════════════════════════════════════════════════════ -->
+<section id="descarga" class="descarga">
+  <div class="contenedor">
+    <p class="eyebrow aparece" data-t="dEyebrow">Descarga gratuita</p>
+    <h2 class="aparece" data-t="dTitulo">Bájatelo y ábrelo. Ya está.</h2>
+    <p class="entradilla aparece" data-t="dSub">
+      Sin cuenta, sin tarjeta y sin periodo de prueba. Diza viene dentro; si prefieres tu propio
+      modelo, pones tu clave en ajustes y listo.
+    </p>
+    <div class="descarga__botones aparece">
+      <a class="boton boton--fuerte" href="#descarga">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span data-t="dCta">Descargar para Windows</span>
+      </a>
+      <a class="boton boton--suave" href="#descarga" data-t="dCta2">Otras plataformas</a>
+    </div>
+    <p class="plataformas"><span>Windows 10+</span><span>macOS 12+</span><span>Linux · deb · AppImage</span></p>
+  </div>
+</section>
+
+<footer>
+  <div class="contenedor footer__fila">
+    <span data-t="pie1">IaDiza Desktop · iadizate.com</span>
+    <span data-t="pie2">Hecho con Diza dentro.</span>
+  </div>
+</footer>
+
+</div>
+
+<script>
+/* ═══ UN SOLO BUCLE DE ANIMACIÓN ════════════════════════════════════════════
+   Todo el movimiento sale de tres variables CSS escritas aquí, en un único
+   rAF. Ni un keyframe, ni un listener de scroll que fuerce layout: solo
+   transform y opacity, que van por GPU. */
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+
+  var raiz = document.documentElement;
+  var montaje = document.getElementById('montaje');
+  var mx = 0, my = 0, mxObj = 0, myObj = 0;
+
+  window.addEventListener('pointermove', function (e) {
+    mxObj = (e.clientX / window.innerWidth) * 2 - 1;
+    myObj = (e.clientY / window.innerHeight) * 2 - 1;
+  }, { passive: true });
+
+  function fotograma() {
+    // Progreso del montaje: 0 al entrar la escena, 1 cuando lleva recorrido el
+    // 62 % de su zona pegajosa. Se corta ahí para que el escritorio quede
+    // montado un rato antes de salir de pantalla.
+    if (montaje) {
+      var caja = montaje.getBoundingClientRect();
+      var recorrible = caja.height - window.innerHeight;
+      var avance = recorrible > 0 ? (-caja.top) / (recorrible * 0.62) : 1;
+      raiz.style.setProperty('--p', Math.max(0, Math.min(1, avance)).toFixed(4));
+    }
+    // Suavizado del ratón: sin esto el 3D tiembla con cada píxel.
+    mx += (mxObj - mx) * 0.085;
+    my += (myObj - my) * 0.085;
+    raiz.style.setProperty('--mx', mx.toFixed(4));
+    raiz.style.setProperty('--my', my.toFixed(4));
+    requestAnimationFrame(fotograma);
+  }
+  requestAnimationFrame(fotograma);
+})();
+
+/* ═══ RECORRIDO: el visor sigue al paso que estás leyendo ═══════════════════ */
+(function () {
+  var pasos = [].slice.call(document.querySelectorAll('.paso'));
+  var visor = document.getElementById('visor');
+  var ruta = document.getElementById('visorRuta');
+  if (!pasos.length || !visor) return;
+  var imagenes = [].slice.call(visor.querySelectorAll('img'));
+
+  function activar(i) {
+    pasos.forEach(function (p, k) { p.classList.toggle('activo', k === i); });
+    imagenes.forEach(function (img, k) { img.classList.toggle('activa', k === i); });
+    if (ruta && pasos[i]) ruta.textContent = pasos[i].dataset.ruta || '';
+  }
+  pasos.forEach(function (p, i) { p.addEventListener('click', function () { activar(i); }); });
+
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) { if (e.isIntersecting) activar(pasos.indexOf(e.target)); });
+    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+    pasos.forEach(function (p) { obs.observe(p); });
+  }
+})();
+
+/* ═══ APARICIÓN ════════════════════════════════════════════════════════════ */
+(function () {
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) return;
+  var piezas = [].slice.call(document.querySelectorAll('.aparece'))
+    .filter(function (p) { return p.getBoundingClientRect().top > window.innerHeight * 0.92; });
+  piezas.forEach(function (p) { p.classList.add('armado'); });
+  var obs = new IntersectionObserver(function (entradas) {
+    entradas.forEach(function (e, i) {
+      if (!e.isIntersecting) return;
+      setTimeout(function () { e.target.classList.remove('armado'); }, Math.min(i * 70, 260));
+      obs.unobserve(e.target);
+    });
+  }, { threshold: 0, rootMargin: '0px 0px -10% 0px' });
+  piezas.forEach(function (p) { obs.observe(p); });
+  setTimeout(function () { piezas.forEach(function (p) { p.classList.remove('armado'); }); }, 3000);
+})();
+
+/* ═══ IDIOMA ═══════════════════════════════════════════════════════════════
+   El texto vive aquí, indexado por clave; el HTML lleva `data-t`. Añadir un
+   idioma es añadir un objeto. La web se despliega en la UE e Hispanoamérica,
+   así que esto no es un extra. */
+var TEXTOS = { es: null, en: {
+  marca: 'IaDiza Desktop', nav1: 'The desktop', nav2: 'Diza', nav3: 'Download',
+  heroEyebrow: 'Desktop development environment',
+  heroTitulo: 'All your tools.<br>One desktop.',
+  heroSub: 'Editor, terminal, Git, file tree and an AI with real access to the project. Not in separate tabs or separate apps: in the same place, working on the same thing.',
+  heroCta: 'Download free', heroCta2: 'Meet Diza',
+  heroNota: 'Windows, macOS and Linux · no account to get started',
+  et1: 'Files · Git · Terminal', et2: 'Editor', et3: 'Version control', et4: 'Diza, with project access',
+  montajeTitulo: 'Not loose parts. A desktop.',
+  montajeSub: 'What other tools leave as four programs open at once, here is a single window.',
+  s1Eyebrow: 'Not an IDE with a chat bolted on',
+  s1Titulo: 'An IDE does not work on its own.<br>A chat cannot see your project.',
+  s1Entrada: 'And a terminal agent does both without letting you watch. IaDiza Desktop puts all three where they belong: in plain sight, on the same project, with everything it touches written somewhere you can go back to.',
+  p1t: 'A chat that acts', p1d: 'Diza opens the files, runs the commands and applies the changes on the project you have open. She does not narrate what she would do.',
+  p2t: 'A full IDE, on its own', p2d: 'Syntax highlighting, project tree, problems panel and terminal. Its own surface, for when you write code.',
+  p3t: 'Git without leaving', p3d: 'Branch, changes and diffs inside the desktop. You see what was touched before committing it.',
+  p4t: 'The war room', p4d: 'Several AIs at the same table on the same problem. Each contributes; you read the answers side by side and decide.',
+  p5t: 'Your key, your model', p5d: 'Add your key from the major AI providers and pick the model per conversation. Whichever you want, whenever you want.',
+  notaVisor: 'Real screenshots of the app, untouched.',
+  d1t: 'And 27 languages, properly',
+  d1d: 'The whole interface, not four buttons: menus, settings, warnings and permission dialogs. Switch it live, no reinstall, no restart.',
+  d1n: 'es · en · pt · fr · de · it · nl · pl · ja · zh · +17',
+  s1Cierre: '<b style="color:var(--text-primary)">And that is what fits on one page.</b> The rest you find by using it: panels that pop out into their own windows, background routines, remote machines and a long etcetera.',
+  s2Eyebrow: 'The one doing the work',
+  s2Titulo: 'Diza does not just reply.<br>She works with you. And for you.',
+  s2Entrada: 'Your teammate for everyday development. She does not wait for you to paste code into a box: she lives inside the desktop, with the project in front of her. She reads it, runs it, changes it and shows you exactly what she did.',
+  c1t: 'Reads before touching', c1d: 'She searches the project and opens the files she needs. She will not answer from memory about code she has not looked at.',
+  c2t: 'Runs and checks', c2d: 'Tests, dependencies, builds. She reads the output and acts on it instead of calling the first attempt done.',
+  c3t: 'Edits with a safety net', c3d: 'Changes land in a review card: which files she touched and what she wrote. You decide what stays.',
+  c4t: 'Asks when it matters', c4d: 'Three trust levels. At the strictest every command goes through you; at the loosest she works alone and reports back.',
+  c5t: 'Works where your code lives', c5d: 'No uploading the project somewhere for her to look at it. Diza reads and writes on your disk, in your folder, the way you would.',
+  figR: 'A real answer: reasoning folded at the top, the reply, and underneath the log of what she did.',
+  d2t: 'Every tool, with its arguments',
+  d2d: 'Under each answer sits its log. Expand it and see which tool she used, on which file, with what result. It is not wiped on close: it is there tomorrow.',
+  privEyebrow: 'Confidentiality',
+  privTitulo: 'Your work stays on your computer',
+  privSub: 'Conversations, memory, files and settings live on your disk. Not on a server of ours: there is no server of ours with your project in it.',
+  priv1: '<b>No account to work.</b> Download it, open it, start.',
+  priv2: '<b>No sync.</b> Nothing is uploaded "just in case": your conversations and your memory never leave the machine.',
+  priv3: '<b>No telemetry.</b> We do not measure what you do or what you do it with.',
+  privLetra: 'The only thing that travels is what the AI needs to read in order to answer you, and it goes to the model you chose. Nothing else, and to no one else. If you want not even that, the engine accepts an inference server on your own network.',
+  cita: 'Your code is still yours. Now you have someone to write it with.',
+  dEyebrow: 'Free download', dTitulo: 'Download it and open it. That is it.',
+  dSub: 'No account, no card, no trial. Diza comes inside; if you would rather use your own model, drop your key in settings and you are done.',
+  dCta: 'Download for Windows', dCta2: 'Other platforms',
+  pie1: 'IaDiza Desktop · iadizate.com', pie2: 'Built with Diza inside.'
+}};
+
+(function () {
+  var original = {};
+  document.querySelectorAll('[data-t]').forEach(function (n) { original[n.dataset.t] = n.innerHTML; });
+  function aplicar(idioma) {
+    var tabla = idioma === 'es' ? original : TEXTOS[idioma];
+    if (!tabla) return;
+    document.querySelectorAll('[data-t]').forEach(function (n) {
+      var v = tabla[n.dataset.t];
+      if (typeof v === 'string') n.innerHTML = v;
+    });
+    document.documentElement.lang = idioma;
+    document.querySelectorAll('[data-idioma]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.idioma === idioma));
+    });
+    try { localStorage.setItem('diza-idioma', idioma); } catch (e) { /* sin almacenamiento */ }
+  }
+  document.querySelectorAll('[data-idioma]').forEach(function (b) {
+    b.addEventListener('click', function () { aplicar(b.dataset.idioma); });
+  });
+  var guardado = null;
+  try { guardado = localStorage.getItem('diza-idioma'); } catch (e) { /* ignorado */ }
+  var inicial = guardado || ((navigator.language || 'es').slice(0, 2) === 'en' ? 'en' : 'es');
+  if (inicial !== 'es') aplicar(inicial);
+})();
+</script>
+</body>
+</html>

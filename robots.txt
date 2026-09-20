@@ -1,0 +1,5 @@
+# IaDiza Desktop — iadizate.com
+User-agent: *
+Allow: /
+
+Sitemap: https://iadizate.com/sitemap.xml

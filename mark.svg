@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800"
+     role="img" aria-label="Diza">
+  <title>Diza</title>
+  <!--
+    El guiño ;D — el de los chats de antes de que existieran los emojis — con la
+    D de Diza. Version para HUECOS PEQUEÑOS: sin fondo propio y centrada, para
+    que se pueda pintar sobre la superficie que toque (lateral, pestaña, chat).
+    El fondo va en `diza-logo.svg`, que es la del icono de la aplicacion.
+
+    El color (#7FD3BD) es practicamente el acento del producto (#80CBC4), asi
+    que el logo no pelea con la interfaz: la remata.
+  -->
+  <g fill="#7FD3BD" transform="translate(-20 0)">
+    <!-- Punto superior del ';' -->
+    <circle cx="240" cy="320" r="45" />
+    <!-- Coma inferior del ';' -->
+    <path d="M 240 390 C 270 390, 285 410, 285 435 C 285 475, 220 515, 185 530 L 165 500 C 195 480, 230 450, 230 430 C 230 410, 210 390, 240 390 Z" />
+    <!-- La 'D', misma altura que el punto y coma: de Y=270 a Y=530 -->
+    <path d="M 370 270 L 480 270 C 560 270, 600 320, 600 400 C 600 480, 560 530, 480 530 L 370 530 Z M 420 320 L 420 480 L 475 480 C 520 480, 550 450, 550 400 C 550 350, 520 320, 475 320 Z" />
+  </g>
+</svg>
