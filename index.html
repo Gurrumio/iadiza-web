@@ -403,6 +403,11 @@ section { padding: clamp(48px, 7vw, 92px) 0; }
 .tarjeta:hover { transform: translateY(-3px); box-shadow: 0 10px 30px -12px var(--elevated); background: var(--elevated); }
 .tarjeta h3 { margin: 0; font: 600 18px/1.15 var(--fuente-titulo); color: var(--text-primary); }
 .tarjeta .tarjeta__req { margin: 0; color: var(--text-secondary); font-size: 13px; }
+.tarjeta { align-items: center; text-align: center; }
+.tarjeta .boton { margin-top: 14px; width: 100%; justify-content: center; gap: 8px; }
+.tarjeta--principal { border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: linear-gradient(180deg, var(--accent-muted), var(--surface) 70%); }
+.confianza { letter-spacing: .02em; }
+@media (max-width: 720px) { .plataformas-grid { grid-template-columns: 1fr; } }
 .confianza { margin-top: 34px; color: var(--text-secondary); font-size: 13px; }
 
 footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(--text-tertiary); font-size: 14px; }
@@ -712,20 +717,20 @@ footer { border-top: 1px solid var(--border-faint); padding: 44px 0; color: var(
       modelo, pones tu clave en ajustes y listo.
     </p>
     <div class="plataformas-grid aparece">
-      <article class="tarjeta">
+      <article class="tarjeta tarjeta--principal">
         <h3 class="tarjeta__titulo" data-t="dWin">Windows</h3>
         <p class="tarjeta__req" data-t="dReqWin">Windows 10 o superior</p>
-        <a class="boton boton--suave" href="#descarga"><span data-t="dBtn">Descargar</span></a>
+        <a class="boton boton--fuerte" href="#descarga"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="dBtn">Descargar</span></a>
       </article>
       <article class="tarjeta">
         <h3 class="tarjeta__titulo" data-t="dMac">macOS</h3>
         <p class="tarjeta__req" data-t="dReqMac">macOS 12 o superior</p>
-        <a class="boton boton--suave" href="#descarga"><span data-t="dBtn">Descargar</span></a>
+        <a class="boton boton--suave" href="#descarga"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="dBtn">Descargar</span></a>
       </article>
       <article class="tarjeta">
         <h3 class="tarjeta__titulo" data-t="dLinux">Linux</h3>
         <p class="tarjeta__req" data-t="dReqLinux">Ubuntu · Debian · AppImage</p>
-        <a class="boton boton--suave" href="#descarga"><span data-t="dBtn">Descargar</span></a>
+        <a class="boton boton--suave" href="#descarga"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-t="dBtn">Descargar</span></a>
       </article>
     </div>
     <p class="confianza" data-t="dConfianza">Sin cuenta · Sin telemetría · 27 idiomas</p>
